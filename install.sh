@@ -22,55 +22,51 @@ EOF
 
 sleep 1
 
-# ============================================
-# Fail Fast (Root Check)
-# ============================================
+# ---- Root Check (FAIL FAST) ----
 if [ "$EUID" -ne 0 ]; then
-  echo "ERROR: Please run as root (use sudo)."
+  echo "ERROR: Run this installer as root (sudo)."
   exit 1
 fi
 
 set -e
 
-# ============================================
+# =========================================================
 # User Input
-# ============================================
+# =========================================================
 read -p "Domain name (example.com): " DOMAIN
 read -p "Database name: " DB_NAME
 read -p "Database user: " DB_USER
 read -s -p "Database password: " DB_PASS
 echo
-read -s -p "MySQL root password: " MYSQL_ROOT_PASS
-echo
 
 WEB_ROOT="/var/www/$DOMAIN"
-PHP_VER="8.1"
+PHP_VER="8.2"
 
-# ============================================
-# System Update & Packages
-# ============================================
+# =========================================================
+# Install Packages
+# =========================================================
 apt update -y
-apt install -y nginx mysql-server unzip curl \
+apt install -y nginx mariadb-server unzip curl \
 php$PHP_VER-fpm php$PHP_VER-mysql php$PHP_VER-curl \
 php$PHP_VER-gd php$PHP_VER-mbstring php$PHP_VER-xml \
 php$PHP_VER-zip
 
-systemctl enable nginx mysql php$PHP_VER-fpm
-systemctl start nginx mysql php$PHP_VER-fpm
+systemctl enable nginx mariadb php$PHP_VER-fpm
+systemctl start nginx mariadb php$PHP_VER-fpm
 
-# ============================================
-# Database Setup
-# ============================================
-mysql -uroot -p"$MYSQL_ROOT_PASS" <<EOF
+# =========================================================
+# Database Setup (Socket Auth – Debian Safe)
+# =========================================================
+mysql <<EOF
 CREATE DATABASE IF NOT EXISTS $DB_NAME DEFAULT CHARACTER SET utf8mb4;
 CREATE USER IF NOT EXISTS '$DB_USER'@'localhost' IDENTIFIED BY '$DB_PASS';
 GRANT ALL PRIVILEGES ON $DB_NAME.* TO '$DB_USER'@'localhost';
 FLUSH PRIVILEGES;
 EOF
 
-# ============================================
-# WordPress Install
-# ============================================
+# =========================================================
+# WordPress Download & Setup
+# =========================================================
 mkdir -p $WEB_ROOT
 cd /tmp
 curl -fsSL https://wordpress.org/latest.zip -o wp.zip
@@ -85,9 +81,9 @@ sed -i "s/database_name_here/$DB_NAME/" $WEB_ROOT/wp-config.php
 sed -i "s/username_here/$DB_USER/" $WEB_ROOT/wp-config.php
 sed -i "s/password_here/$DB_PASS/" $WEB_ROOT/wp-config.php
 
-# ============================================
-# Nginx Config
-# ============================================
+# =========================================================
+# Nginx Virtual Host
+# =========================================================
 cat > /etc/nginx/sites-available/$DOMAIN <<EOF
 server {
     listen 80;
@@ -117,18 +113,18 @@ rm -f /etc/nginx/sites-enabled/default
 nginx -t
 systemctl reload nginx
 
-# ============================================
+# =========================================================
 # Finish Screen
-# ============================================
+# =========================================================
 clear
 cat << EOF
 
-============================================
- WordPress Installed Successfully
-============================================
- Domain : http://$DOMAIN
- Webroot: $WEB_ROOT
- Server : Nginx + PHP $PHP_VER
-============================================
+┌───────────────────────────────────────────────┐
+│   ✅ WORDPRESS INSTALLED SUCCESSFULLY         │
+├───────────────────────────────────────────────┤
+│   URL     : http://$DOMAIN                    │
+│   Webroot : $WEB_ROOT                         │
+│   Stack   : Nginx + PHP $PHP_VER + MariaDB    │
+└───────────────────────────────────────────────┘
 
 EOF
