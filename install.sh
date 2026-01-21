@@ -1,28 +1,36 @@
 #!/bin/bash
 
-# ============================================
-# CodeSolo Flash Screen
-# ============================================
+# =========================================================
+# CodeSolo WordPress One-Click Installer
+# Stack: Nginx + PHP 8.2 + MariaDB
+# OS: Debian 11/12, Ubuntu 22.04
+# =========================================================
 
+# ---- Flash Screen ----
 for i in {1..2}; do clear; sleep 0.15; done
 
 cat << "EOF"
 
- ██████╗ ██████╗ ██████╗ ███████╗███████╗ ██████╗ ██╗      ██████╗ 
-██╔════╝██╔═══██╗██╔══██╗██╔════╝██╔════╝██╔═══██╗██║     ██╔═══██╗
-██║     ██║   ██║██║  ██║█████╗  ███████╗██║   ██║██║     ██║   ██║
-██║     ██║   ██║██║  ██║██╔══╝  ╚════██║██║   ██║██║     ██║   ██║
-╚██████╗╚██████╔╝██████╔╝███████╗███████║╚██████╔╝███████╗╚██████╔╝
- ╚═════╝ ╚═════╝ ╚═════╝ ╚══════╝╚══════╝ ╚═════╝ ╚══════╝ ╚═════╝ 
-
-            C O D E S O L O   N E T W O R K
-        WordPress One-Click Installer (Nginx)
+┌─────────────────────────────────────────────────────────┐
+│                                                         │
+│   ██████╗ ██████╗ ██████╗ ███████╗███████╗ ██████╗      │
+│  ██╔════╝██╔═══██╗██╔══██╗██╔════╝██╔════╝██╔═══██╗     │
+│  ██║     ██║   ██║██║  ██║█████╗  ███████╗██║   ██║     │
+│  ██║     ██║   ██║██║  ██║██╔══╝  ╚════██║██║   ██║     │
+│  ╚██████╗╚██████╔╝██████╔╝███████╗███████║╚██████╔╝     │
+│   ╚═════╝ ╚═════╝ ╚═════╝ ╚══════╝╚══════╝ ╚═════╝      │
+│                                                         │
+│                 C O D E S O L O                          │
+│                    N E T W O R K                         │
+│          WordPress One-Click Installer                   │
+│                                                         │
+└─────────────────────────────────────────────────────────┘
 
 EOF
 
 sleep 1
 
-# ---- Root Check (FAIL FAST) ----
+# ---- Root Check ----
 if [ "$EUID" -ne 0 ]; then
   echo "ERROR: Run this installer as root (sudo)."
   exit 1
@@ -55,31 +63,37 @@ systemctl enable nginx mariadb php$PHP_VER-fpm
 systemctl start nginx mariadb php$PHP_VER-fpm
 
 # =========================================================
-# Database Setup (Socket Auth – Debian Safe)
+# Database Setup (MariaDB Safe)
 # =========================================================
 mysql <<EOF
-CREATE DATABASE IF NOT EXISTS $DB_NAME DEFAULT CHARACTER SET utf8mb4;
-CREATE USER IF NOT EXISTS '$DB_USER'@'localhost' IDENTIFIED BY '$DB_PASS';
-GRANT ALL PRIVILEGES ON $DB_NAME.* TO '$DB_USER'@'localhost';
+CREATE DATABASE IF NOT EXISTS \`$DB_NAME\`
+CHARACTER SET utf8mb4
+COLLATE utf8mb4_unicode_ci;
+
+CREATE USER IF NOT EXISTS '$DB_USER'@'localhost'
+IDENTIFIED BY '$DB_PASS';
+
+GRANT ALL PRIVILEGES ON \`$DB_NAME\`.* TO '$DB_USER'@'localhost';
 FLUSH PRIVILEGES;
 EOF
 
 # =========================================================
 # WordPress Download & Setup
 # =========================================================
-mkdir -p $WEB_ROOT
+mkdir -p "$WEB_ROOT"
 cd /tmp
+
 curl -fsSL https://wordpress.org/latest.zip -o wp.zip
 unzip -oq wp.zip
-cp -r wordpress/* $WEB_ROOT
+cp -r wordpress/* "$WEB_ROOT"
 
-chown -R www-data:www-data $WEB_ROOT
-chmod -R 755 $WEB_ROOT
+chown -R www-data:www-data "$WEB_ROOT"
+chmod -R 755 "$WEB_ROOT"
 
-cp $WEB_ROOT/wp-config-sample.php $WEB_ROOT/wp-config.php
-sed -i "s/database_name_here/$DB_NAME/" $WEB_ROOT/wp-config.php
-sed -i "s/username_here/$DB_USER/" $WEB_ROOT/wp-config.php
-sed -i "s/password_here/$DB_PASS/" $WEB_ROOT/wp-config.php
+cp "$WEB_ROOT/wp-config-sample.php" "$WEB_ROOT/wp-config.php"
+sed -i "s/database_name_here/$DB_NAME/" "$WEB_ROOT/wp-config.php"
+sed -i "s/username_here/$DB_USER/" "$WEB_ROOT/wp-config.php"
+sed -i "s/password_here/$DB_PASS/" "$WEB_ROOT/wp-config.php"
 
 # =========================================================
 # Nginx Virtual Host
