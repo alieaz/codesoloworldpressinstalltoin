@@ -153,6 +153,6 @@ cat <<EOF
 ╠══════════════════════════════════════════════╣
 ║   URL     : http://$DOMAIN                   ║
 ║   Webroot : $WEB_ROOT                        ║
-║   Stack   : Nginx + PHP $PHP_VER + MariaDB   ║
+║   Stack   : Nginx + PHP $PHP_VER + mariaDB   ║
 ╚══════════════════════════════════════════════╝
 EOF
