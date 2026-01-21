@@ -2,14 +2,12 @@
 
 # =========================================================
 # CODESOLO WordPress One-Click Installer
-# Stack: Nginx + PHP 8.2 + MariaDB
+# Nginx + PHP 8.2 + MariaDB
 # =========================================================
 
-# ---- Flash Screen ----
-for i in 1 2; do clear; sleep 0.15; done
+clear
 
-cat << "EOF"
-
+cat << 'EOF'
 ╔═════════════════════════════════════════════════════════╗
 ║                                                         ║
 ║   ██████╗  ██████╗ ██████╗ ███████╗███████╗ ██████╗     ║
@@ -24,46 +22,49 @@ cat << "EOF"
 ║             WordPress One-Click Installer               ║
 ║                                                         ║
 ╚═════════════════════════════════════════════════════════╝
-
 EOF
 
 sleep 1
 
 # ---- Root Check ----
-if [ "$EUID" -ne 0 ]; then
-  echo "ERROR: Run this installer as root (sudo)."
+if [ "$(id -u)" != "0" ]; then
+  echo "ERROR: Run as root (sudo)"
   exit 1
 fi
 
-set -e
-
 # =========================================================
-# User Input (FULL VALIDATION)
+# User Input (SAFE)
 # =========================================================
 
-while [[ -z "$DOMAIN" ]]; do
-  read -p "Domain name (example.com): " DOMAIN
+DOMAIN=""
+DB_NAME=""
+DB_USER=""
+DB_PASS=""
+
+until [ -n "$DOMAIN" ]; do
+  read -r -p "Domain name (example.com): " DOMAIN
 done
 
-while [[ -z "$DB_NAME" ]]; do
-  read -p "Database name (no spaces): " DB_NAME
+until [ -n "$DB_NAME" ]; do
+  read -r -p "Database name: " DB_NAME
 done
 
-while [[ -z "$DB_USER" ]]; do
-  read -p "Database user: " DB_USER
+until [ -n "$DB_USER" ]; do
+  read -r -p "Database user: " DB_USER
 done
 
-while [[ -z "$DB_PASS" ]]; do
-  read -s -p "Database password: " DB_PASS
+until [ -n "$DB_PASS" ]; do
+  read -r -s -p "Database password: " DB_PASS
   echo
 done
 
-WEB_ROOT="/var/www/$DOMAIN"
 PHP_VER="8.2"
+WEB_ROOT="/var/www/$DOMAIN"
 
 # =========================================================
 # Install Packages
 # =========================================================
+
 apt update -y
 apt install -y nginx mariadb-server unzip curl \
 php$PHP_VER-fpm php$PHP_VER-mysql php$PHP_VER-curl \
@@ -74,11 +75,12 @@ systemctl enable nginx mariadb php$PHP_VER-fpm
 systemctl start nginx mariadb php$PHP_VER-fpm
 
 # =========================================================
-# Database Setup (MariaDB SAFE)
+# Database Setup
 # =========================================================
-mysql <<EOF
+
+mysql <<MYSQL_EOF
 CREATE DATABASE IF NOT EXISTS \`$DB_NAME\`
-CHARACTER SET utf8mb4
+DEFAULT CHARACTER SET utf8mb4
 COLLATE utf8mb4_unicode_ci;
 
 CREATE USER IF NOT EXISTS '$DB_USER'@'localhost'
@@ -86,13 +88,14 @@ IDENTIFIED BY '$DB_PASS';
 
 GRANT ALL PRIVILEGES ON \`$DB_NAME\`.* TO '$DB_USER'@'localhost';
 FLUSH PRIVILEGES;
-EOF
+MYSQL_EOF
 
 # =========================================================
 # WordPress Install
 # =========================================================
+
 mkdir -p "$WEB_ROOT"
-cd /tmp
+cd /tmp || exit 1
 
 curl -fsSL https://wordpress.org/latest.zip -o wp.zip
 unzip -oq wp.zip
@@ -109,7 +112,8 @@ sed -i "s/password_here/$DB_PASS/" "$WEB_ROOT/wp-config.php"
 # =========================================================
 # Nginx Config
 # =========================================================
-cat > /etc/nginx/sites-available/$DOMAIN <<EOF
+
+cat > "/etc/nginx/sites-available/$DOMAIN" <<NGINX_EOF
 server {
     listen 80;
     server_name $DOMAIN www.$DOMAIN;
@@ -130,9 +134,9 @@ server {
         deny all;
     }
 }
-EOF
+NGINX_EOF
 
-ln -sf /etc/nginx/sites-available/$DOMAIN /etc/nginx/sites-enabled/
+ln -sf "/etc/nginx/sites-available/$DOMAIN" /etc/nginx/sites-enabled/
 rm -f /etc/nginx/sites-enabled/default
 
 nginx -t
@@ -141,9 +145,9 @@ systemctl reload nginx
 # =========================================================
 # Finish
 # =========================================================
-clear
-cat << EOF
 
+clear
+cat <<EOF
 ╔══════════════════════════════════════════════╗
 ║   WORDPRESS INSTALLED SUCCESSFULLY           ║
 ╠══════════════════════════════════════════════╣
@@ -151,5 +155,4 @@ cat << EOF
 ║   Webroot : $WEB_ROOT                        ║
 ║   Stack   : Nginx + PHP $PHP_VER + MariaDB   ║
 ╚══════════════════════════════════════════════╝
-
 EOF
