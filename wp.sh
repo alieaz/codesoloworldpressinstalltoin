@@ -10,19 +10,20 @@ for i in 1 2; do clear; sleep 0.15; done
 
 cat << "EOF"
 
-+---------------------------------------------------------+
-|                                                         |
-|   #####   #####   #####   #####   #####   #####         |
-|   #       #   #   #   #   #       #       #             |
-|   #####   #   #   #   #   #####   #####   #####         |
-|       #   #   #   #   #       #       #       #         |
-|   #####   #####   #####   #####   #####   #####         |
-|                                                         |
-|                   C O D E S O L O                       |
-|                     N E T W O R K                       |
-|           WordPress One-Click Installer                 |
-|                                                         |
-+---------------------------------------------------------+
+╔═════════════════════════════════════════════════════════╗
+║                                                         ║
+║   ██████╗  ██████╗ ██████╗ ███████╗███████╗ ██████╗     ║
+║  ██╔════╝ ██╔═══██╗██╔══██╗██╔════╝██╔════╝██╔═══██╗    ║
+║  ██║      ██║   ██║██║  ██║█████╗  ███████╗██║   ██║    ║
+║  ██║      ██║   ██║██║  ██║██╔══╝  ╚════██║██║   ██║    ║
+║  ╚██████╗ ╚██████╔╝██████╔╝███████╗███████║╚██████╔╝    ║
+║   ╚═════╝  ╚═════╝ ╚═════╝ ╚══════╝╚══════╝ ╚═════╝     ║
+║                                                         ║
+║                     C O D E S O L O                     ║
+║                        N E T W O R K                    ║
+║             WordPress One-Click Installer               ║
+║                                                         ║
+╚═════════════════════════════════════════════════════════╝
 
 EOF
 
@@ -37,9 +38,12 @@ fi
 set -e
 
 # =========================================================
-# User Input (VALIDATED)
+# User Input (FULL VALIDATION)
 # =========================================================
-read -p "Domain name (example.com): " DOMAIN
+
+while [[ -z "$DOMAIN" ]]; do
+  read -p "Domain name (example.com): " DOMAIN
+done
 
 while [[ -z "$DB_NAME" ]]; do
   read -p "Database name (no spaces): " DB_NAME
@@ -70,7 +74,7 @@ systemctl enable nginx mariadb php$PHP_VER-fpm
 systemctl start nginx mariadb php$PHP_VER-fpm
 
 # =========================================================
-# Database Setup (MariaDB Safe)
+# Database Setup (MariaDB SAFE)
 # =========================================================
 mysql <<EOF
 CREATE DATABASE IF NOT EXISTS \`$DB_NAME\`
@@ -135,17 +139,17 @@ nginx -t
 systemctl reload nginx
 
 # =========================================================
-# Finish Screen
+# Finish
 # =========================================================
 clear
 cat << EOF
 
-+--------------------------------------------------+
-|   WORDPRESS INSTALLED SUCCESSFULLY               |
-+--------------------------------------------------+
-|   URL     : http://$DOMAIN                       |
-|   Webroot : $WEB_ROOT                            |
-|   Stack   : Nginx + PHP $PHP_VER + MariaDB       |
-+--------------------------------------------------+
+╔══════════════════════════════════════════════╗
+║   WORDPRESS INSTALLED SUCCESSFULLY           ║
+╠══════════════════════════════════════════════╣
+║   URL     : http://$DOMAIN                   ║
+║   Webroot : $WEB_ROOT                        ║
+║   Stack   : Nginx + PHP $PHP_VER + MariaDB   ║
+╚══════════════════════════════════════════════╝
 
 EOF
