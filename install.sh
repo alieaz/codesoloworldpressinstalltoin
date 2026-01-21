@@ -1,8 +1,8 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # =========================================================
 # CODESOLO WordPress One-Click Installer
-# Nginx + PHP 8.2 + MariaDB
+# Shell-safe version (NO while / until / done)
 # =========================================================
 
 clear
@@ -26,43 +26,34 @@ EOF
 
 sleep 1
 
-# ---- Root Check ----
+# ---- Root check ----
 if [ "$(id -u)" != "0" ]; then
   echo "ERROR: Run as root (sudo)"
   exit 1
 fi
 
 # =========================================================
-# User Input (SAFE)
+# User Input (NO LOOPS)
 # =========================================================
 
-DOMAIN=""
-DB_NAME=""
-DB_USER=""
-DB_PASS=""
+read -r -p "Domain name (example.com): " DOMAIN
+[ -z "$DOMAIN" ] && echo "ERROR: Domain required" && exit 1
 
-until [ -n "$DOMAIN" ]; do
-  read -r -p "Domain name (example.com): " DOMAIN
-done
+read -r -p "Database name: " DB_NAME
+[ -z "$DB_NAME" ] && echo "ERROR: Database name required" && exit 1
 
-until [ -n "$DB_NAME" ]; do
-  read -r -p "Database name: " DB_NAME
-done
+read -r -p "Database user: " DB_USER
+[ -z "$DB_USER" ] && echo "ERROR: Database user required" && exit 1
 
-until [ -n "$DB_USER" ]; do
-  read -r -p "Database user: " DB_USER
-done
-
-until [ -n "$DB_PASS" ]; do
-  read -r -s -p "Database password: " DB_PASS
-  echo
-done
+read -r -s -p "Database password: " DB_PASS
+echo
+[ -z "$DB_PASS" ] && echo "ERROR: Database password required" && exit 1
 
 PHP_VER="8.2"
 WEB_ROOT="/var/www/$DOMAIN"
 
 # =========================================================
-# Install Packages
+# Install packages
 # =========================================================
 
 apt update -y
@@ -75,12 +66,12 @@ systemctl enable nginx mariadb php$PHP_VER-fpm
 systemctl start nginx mariadb php$PHP_VER-fpm
 
 # =========================================================
-# Database Setup
+# Database
 # =========================================================
 
-mysql <<MYSQL_EOF
+mysql <<EOF
 CREATE DATABASE IF NOT EXISTS \`$DB_NAME\`
-DEFAULT CHARACTER SET utf8mb4
+CHARACTER SET utf8mb4
 COLLATE utf8mb4_unicode_ci;
 
 CREATE USER IF NOT EXISTS '$DB_USER'@'localhost'
@@ -88,10 +79,10 @@ IDENTIFIED BY '$DB_PASS';
 
 GRANT ALL PRIVILEGES ON \`$DB_NAME\`.* TO '$DB_USER'@'localhost';
 FLUSH PRIVILEGES;
-MYSQL_EOF
+EOF
 
 # =========================================================
-# WordPress Install
+# WordPress
 # =========================================================
 
 mkdir -p "$WEB_ROOT"
@@ -110,10 +101,10 @@ sed -i "s/username_here/$DB_USER/" "$WEB_ROOT/wp-config.php"
 sed -i "s/password_here/$DB_PASS/" "$WEB_ROOT/wp-config.php"
 
 # =========================================================
-# Nginx Config
+# Nginx
 # =========================================================
 
-cat > "/etc/nginx/sites-available/$DOMAIN" <<NGINX_EOF
+cat > "/etc/nginx/sites-available/$DOMAIN" <<EOF
 server {
     listen 80;
     server_name $DOMAIN www.$DOMAIN;
@@ -134,25 +125,19 @@ server {
         deny all;
     }
 }
-NGINX_EOF
+EOF
 
 ln -sf "/etc/nginx/sites-available/$DOMAIN" /etc/nginx/sites-enabled/
 rm -f /etc/nginx/sites-enabled/default
 
-nginx -t
-systemctl reload nginx
+nginx -t && systemctl reload nginx
 
 # =========================================================
-# Finish
+# Done
 # =========================================================
 
 clear
-cat <<EOF
-╔══════════════════════════════════════════════╗
-║   WORDPRESS INSTALLED SUCCESSFULLY           ║
-╠══════════════════════════════════════════════╣
-║   URL     : http://$DOMAIN                   ║
-║   Webroot : $WEB_ROOT                        ║
-║   Stack   : Nginx + PHP $PHP_VER + mariaDB   ║
-╚══════════════════════════════════════════════╝
-EOF
+echo "======================================"
+echo " WordPress Installed Successfully"
+echo " URL: http://$DOMAIN"
+echo "======================================"
