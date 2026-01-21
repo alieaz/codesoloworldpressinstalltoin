@@ -1,30 +1,28 @@
 #!/bin/bash
 
 # =========================================================
-# CodeSolo WordPress One-Click Installer
+# CODESOLO WordPress One-Click Installer
 # Stack: Nginx + PHP 8.2 + MariaDB
-# OS: Debian 11/12, Ubuntu 22.04
 # =========================================================
 
 # ---- Flash Screen ----
-for i in {1..2}; do clear; sleep 0.15; done
+for i in 1 2; do clear; sleep 0.15; done
 
 cat << "EOF"
 
-┌─────────────────────────────────────────────────────────┐
-│                                                         │
-│   ██████╗ ██████╗ ██████╗ ███████╗███████╗ ██████╗      │
-│  ██╔════╝██╔═══██╗██╔══██╗██╔════╝██╔════╝██╔═══██╗     │
-│  ██║     ██║   ██║██║  ██║█████╗  ███████╗██║   ██║     │
-│  ██║     ██║   ██║██║  ██║██╔══╝  ╚════██║██║   ██║     │
-│  ╚██████╗╚██████╔╝██████╔╝███████╗███████║╚██████╔╝     │
-│   ╚═════╝ ╚═════╝ ╚═════╝ ╚══════╝╚══════╝ ╚═════╝      │
-│                                                         │
-│                 C O D E S O L O                          │
-│                    N E T W O R K                         │
-│          WordPress One-Click Installer                   │
-│                                                         │
-└─────────────────────────────────────────────────────────┘
++---------------------------------------------------------+
+|                                                         |
+|   #####   #####   #####   #####   #####   #####         |
+|   #       #   #   #   #   #       #       #             |
+|   #####   #   #   #   #   #####   #####   #####         |
+|       #   #   #   #   #       #       #       #         |
+|   #####   #####   #####   #####   #####   #####         |
+|                                                         |
+|                   C O D E S O L O                       |
+|                     N E T W O R K                       |
+|           WordPress One-Click Installer                 |
+|                                                         |
++---------------------------------------------------------+
 
 EOF
 
@@ -39,13 +37,22 @@ fi
 set -e
 
 # =========================================================
-# User Input
+# User Input (VALIDATED)
 # =========================================================
 read -p "Domain name (example.com): " DOMAIN
-read -p "Database name: " DB_NAME
-read -p "Database user: " DB_USER
-read -s -p "Database password: " DB_PASS
-echo
+
+while [[ -z "$DB_NAME" ]]; do
+  read -p "Database name (no spaces): " DB_NAME
+done
+
+while [[ -z "$DB_USER" ]]; do
+  read -p "Database user: " DB_USER
+done
+
+while [[ -z "$DB_PASS" ]]; do
+  read -s -p "Database password: " DB_PASS
+  echo
+done
 
 WEB_ROOT="/var/www/$DOMAIN"
 PHP_VER="8.2"
@@ -78,7 +85,7 @@ FLUSH PRIVILEGES;
 EOF
 
 # =========================================================
-# WordPress Download & Setup
+# WordPress Install
 # =========================================================
 mkdir -p "$WEB_ROOT"
 cd /tmp
@@ -96,7 +103,7 @@ sed -i "s/username_here/$DB_USER/" "$WEB_ROOT/wp-config.php"
 sed -i "s/password_here/$DB_PASS/" "$WEB_ROOT/wp-config.php"
 
 # =========================================================
-# Nginx Virtual Host
+# Nginx Config
 # =========================================================
 cat > /etc/nginx/sites-available/$DOMAIN <<EOF
 server {
@@ -133,12 +140,12 @@ systemctl reload nginx
 clear
 cat << EOF
 
-┌───────────────────────────────────────────────┐
-│   ✅ WORDPRESS INSTALLED SUCCESSFULLY         │
-├───────────────────────────────────────────────┤
-│   URL     : http://$DOMAIN                    │
-│   Webroot : $WEB_ROOT                         │
-│   Stack   : Nginx + PHP $PHP_VER + MariaDB    │
-└───────────────────────────────────────────────┘
++--------------------------------------------------+
+|   WORDPRESS INSTALLED SUCCESSFULLY               |
++--------------------------------------------------+
+|   URL     : http://$DOMAIN                       |
+|   Webroot : $WEB_ROOT                            |
+|   Stack   : Nginx + PHP $PHP_VER + MariaDB       |
++--------------------------------------------------+
 
 EOF
